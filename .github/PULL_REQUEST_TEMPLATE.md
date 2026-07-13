@@ -16,6 +16,6 @@ achieves it.
 - [ ] Protocol changes include schema, test-vector, and compatibility updates.
 - [ ] Adapter changes preserve cancellation, redaction, recovery, and permission boundaries.
 - [ ] Security-sensitive changes include negative tests and request CODEOWNERS review.
-- [ ] Dependency changes pass license and vulnerability review.
+- [ ] Dependency changes ran `npm run deps:refresh-evidence` and pass license, provenance, registry-signature, and vulnerability review.
 - [ ] Documentation and changelog impact has been considered.
 - [ ] My commits include the required `Signed-off-by` line under the project's DCO policy.

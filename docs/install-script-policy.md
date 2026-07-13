@@ -13,3 +13,7 @@ separate from license and vulnerability checks.
 
 Any version change reopens review. CI lists pending install scripts and fails if
 the allowlist does not cover the clean lockfile install.
+
+After any dependency or lockfile change, run `npm run deps:refresh-evidence`
+before `npm run check`. A stale provenance or license report is a required
+review stop, including on automated dependency pull requests.
