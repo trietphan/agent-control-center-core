@@ -1,0 +1,36 @@
+[
+  {
+    "name": "unknown-message",
+    "type": "work.destroy_everything",
+    "payload": {},
+    "code": "UNKNOWN_TYPE"
+  },
+  {
+    "name": "missing-offer-lease",
+    "type": "work.offer",
+    "payload": {
+      "taskId": "fixture"
+    },
+    "code": "SCHEMA_VIOLATION"
+  },
+  {
+    "name": "bad-sha256",
+    "type": "artifact.declared",
+    "payload": {
+      "digest": "abc123"
+    },
+    "code": "SCHEMA_VIOLATION"
+  },
+  {
+    "name": "bad-signature",
+    "mutate": "envelope.signature",
+    "value": "ed25519:AAAA",
+    "code": "SIGNATURE_INVALID"
+  },
+  {
+    "name": "clock-skew",
+    "mutate": "receiverNow",
+    "value": "2026-07-12T10:10:00.000Z",
+    "code": "CLOCK_SKEW_EXCEEDED"
+  }
+]

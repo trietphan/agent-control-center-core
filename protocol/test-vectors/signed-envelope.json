@@ -1,0 +1,44 @@
+{
+  "note": "TEST VECTOR ONLY - no private key is distributed",
+  "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAKh5KvJve1DA2BiYl70WZCdT+r/+yGs9qBUHTmDYIYkU=\n-----END PUBLIC KEY-----\n",
+  "verifyAt": "2026-07-12T10:00:30.000Z",
+  "envelope": {
+    "protocol": "accp/1.0",
+    "schemaDigest": "sha256:3978603f31086172fe5be0c4103a424d186e5bd3bd20cecbf43fde280c9e7c98",
+    "type": "work.offer",
+    "messageId": "019f6a00-0000-7000-8000-000000000050",
+    "sessionId": "019f6a00-0000-7000-8000-000000000051",
+    "workspaceId": "019f6a00-0000-7000-8000-000000000052",
+    "senderId": "cloud",
+    "idempotencyKey": "fixture:work-offer:1",
+    "sequence": 1,
+    "sentAt": "2026-07-12T10:00:00.000Z",
+    "expiresAt": "2026-07-12T10:05:00.000Z",
+    "payload": {
+      "taskId": "019f6a00-0000-7000-8000-000000000001",
+      "runId": "019f6a00-0000-7000-8000-000000000002",
+      "taskRevision": 3,
+      "planRevision": {
+        "digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "baseCommit": "9fceb02d0ae598e95dc970b74767f19372d61af8"
+      },
+      "lease": {
+        "leaseId": "019f6a00-0000-7000-8000-000000000003",
+        "expiresAt": "2026-07-12T10:00:00.000Z",
+        "renewIntervalMs": 15000
+      },
+      "policyBundle": {
+        "digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
+        "bytesUrl": "https://cloud.example/bundles/77aa"
+      },
+      "requiredCapabilities": [
+        "worktree"
+      ],
+      "requiredSecrets": [
+        "secret://example/npm-token"
+      ]
+    },
+    "payloadDigest": "sha256:1e61f525508440e13ca147fdc892e564cf514f1c154c1913392190c88bab93d8",
+    "signature": "ed25519:qLpCWFz6RyFTnTGU4_b6qsWhk7_VN3UR5s0ZhrMYPE-hXcJeEnJ-jNI4H511fMxyhS3iDRMqW9wi-DKx1-fSAg"
+  }
+}

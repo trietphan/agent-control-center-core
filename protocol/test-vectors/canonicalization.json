@@ -1,0 +1,15 @@
+{
+  "input": {
+    "z": [
+      3,
+      true,
+      null
+    ],
+    "a": {
+      "escaped": "line\nfeed",
+      "unicode": "control-plane"
+    }
+  },
+  "canonical": "{\"a\":{\"escaped\":\"line\\nfeed\",\"unicode\":\"control-plane\"},\"z\":[3,true,null]}",
+  "digest": "sha256:1bbd96c1de1707d81377306794c898693ba6945e52d5a2444c96837c7bb368c8"
+}

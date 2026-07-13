@@ -1,0 +1,302 @@
+{
+  "protocol": "accp/1.0",
+  "payloads": {
+    "node.hello": {
+      "supportedProtocols": [
+        "accp/1.0"
+      ],
+      "schemaBundleDigest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+      "nodeVersion": "1.4.2",
+      "platform": "linux-x64",
+      "adapterManifests": [
+        {
+          "adapterId": "openai.codex-cli",
+          "manifestDigest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+          "readiness": "ready"
+        }
+      ],
+      "capabilities": [
+        "worktree"
+      ],
+      "capacity": {
+        "maxConcurrentRuns": 4,
+        "availableRuns": 3
+      },
+      "resume": {
+        "cloudCursor": 18211,
+        "nodeCursor": 90417
+      }
+    },
+    "node.welcome": {
+      "protocol": "accp/1.0",
+      "connectionEpoch": 42,
+      "schemaBundleDigest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+      "cloudCursor": 18240,
+      "nodeCursorAck": 90390,
+      "policyBundleDigest": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
+      "limits": {
+        "maxUnackedBatches": 16,
+        "maxEventsPerBatch": 256,
+        "maxEnvelopeBytes": 1048576,
+        "heartbeatIntervalMs": 15000,
+        "deadAfterMs": 45000
+      },
+      "serverTime": "2026-07-12T10:00:00.000Z"
+    },
+    "node.heartbeat": {
+      "status": "online",
+      "capacity": {
+        "maxConcurrentRuns": 4,
+        "availableRuns": 2
+      },
+      "activeLeaseIds": [
+        "019f6a00-0000-7000-8000-000000000001"
+      ],
+      "buffer": {
+        "events": 0,
+        "bytes": 0
+      }
+    },
+    "work.offer": {
+      "taskId": "019f6a00-0000-7000-8000-000000000001",
+      "runId": "019f6a00-0000-7000-8000-000000000002",
+      "taskRevision": 3,
+      "planRevision": {
+        "digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "baseCommit": "9fceb02d0ae598e95dc970b74767f19372d61af8"
+      },
+      "lease": {
+        "leaseId": "019f6a00-0000-7000-8000-000000000003",
+        "expiresAt": "2026-07-12T10:00:00.000Z",
+        "renewIntervalMs": 15000
+      },
+      "policyBundle": {
+        "digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
+        "bytesUrl": "https://cloud.example/bundles/77aa"
+      },
+      "requiredCapabilities": [
+        "worktree"
+      ],
+      "requiredSecrets": [
+        "secret://example/npm-token"
+      ]
+    },
+    "work.accepted": {
+      "taskId": "019f6a00-0000-7000-8000-000000000001",
+      "runId": "019f6a00-0000-7000-8000-000000000002",
+      "leaseId": "019f6a00-0000-7000-8000-000000000003",
+      "persistedAt": "2026-07-12T10:00:00.000Z",
+      "planRevisionDigest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+    },
+    "work.declined": {
+      "taskId": "019f6a00-0000-7000-8000-000000000001",
+      "runId": "019f6a00-0000-7000-8000-000000000002",
+      "leaseId": "019f6a00-0000-7000-8000-000000000003",
+      "reason": "SECRET_MISSING",
+      "detail": "synthetic secret reference unresolved"
+    },
+    "lease.renewed": {
+      "leaseId": "019f6a00-0000-7000-8000-000000000003",
+      "runId": "019f6a00-0000-7000-8000-000000000002",
+      "expiresAt": "2026-07-12T10:00:00.000Z"
+    },
+    "lease.revoked": {
+      "leaseId": "019f6a00-0000-7000-8000-000000000003",
+      "runId": "019f6a00-0000-7000-8000-000000000002",
+      "reason": "OPERATOR_STOP",
+      "stopDeadlineAt": "2026-07-12T10:00:00.000Z"
+    },
+    "run.cancel_requested": {
+      "runId": "019f6a00-0000-7000-8000-000000000002",
+      "reason": "operator stop",
+      "deadlineAt": "2026-07-12T10:00:00.000Z"
+    },
+    "run.message_posted": {
+      "runId": "019f6a00-0000-7000-8000-000000000002",
+      "operatorMessageId": "019f6a00-0000-7000-8000-000000000009",
+      "body": "Preserve the evidence and stop after this step.",
+      "postedBy": "user:fixture",
+      "postedAt": "2026-07-12T10:00:00.000Z"
+    },
+    "run.event_batch": {
+      "batchId": "019f6a00-0000-7000-8000-000000000010",
+      "firstCursor": 90418,
+      "lastCursor": 90419,
+      "events": [
+        {
+          "cursor": 90418,
+          "eventId": "019f6a00-0000-7000-8000-000000000011",
+          "runId": "019f6a00-0000-7000-8000-000000000002",
+          "kind": "step.finished",
+          "occurredAt": "2026-07-12T10:00:00.000Z",
+          "data": {
+            "stepId": "execute-1",
+            "exitCode": 0
+          }
+        },
+        {
+          "cursor": 90419,
+          "eventId": "019f6a00-0000-7000-8000-000000000012",
+          "runId": "019f6a00-0000-7000-8000-000000000002",
+          "kind": "verification.started",
+          "occurredAt": "2026-07-12T10:00:00.000Z",
+          "data": {}
+        }
+      ],
+      "truncatedPendingReconcile": false
+    },
+    "artifact.declared": {
+      "artifactId": "019f6a00-0000-7000-8000-000000000020",
+      "runId": "019f6a00-0000-7000-8000-000000000002",
+      "taskId": "019f6a00-0000-7000-8000-000000000001",
+      "kind": "test-log",
+      "mediaType": "text/plain",
+      "sizeBytes": 21474836,
+      "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "partSizeBytes": 8388608,
+      "partCount": 3,
+      "redactionState": "none",
+      "provenance": {
+        "producer": "verifier",
+        "stepId": "verify-1"
+      }
+    },
+    "artifact.upload_granted": {
+      "artifactId": "019f6a00-0000-7000-8000-000000000020",
+      "uploadId": "fixture-upload-77aa",
+      "parts": [
+        {
+          "partNumber": 2,
+          "url": "https://store.example/part2",
+          "expiresAt": "2026-07-12T10:00:00.000Z",
+          "maxBytes": 8388608
+        }
+      ],
+      "committedParts": [
+        {
+          "partNumber": 1,
+          "digest": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    "artifact.committed": {
+      "artifactId": "019f6a00-0000-7000-8000-000000000020",
+      "uploadId": "fixture-upload-77aa",
+      "sizeBytes": 21474836,
+      "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "parts": [
+        {
+          "partNumber": 1,
+          "sizeBytes": 8388608,
+          "digest": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "partNumber": 2,
+          "sizeBytes": 8388608,
+          "digest": "5555555555555555555555555555555555555555555555555555555555555555"
+        },
+        {
+          "partNumber": 3,
+          "sizeBytes": 4697620,
+          "digest": "9999999999999999999999999999999999999999999999999999999999999999"
+        }
+      ]
+    },
+    "run.completion_proposed": {
+      "runId": "019f6a00-0000-7000-8000-000000000002",
+      "taskId": "019f6a00-0000-7000-8000-000000000001",
+      "taskRevision": 3,
+      "planRevisionDigest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "outcome": "succeeded",
+      "completionDigest": "7777777777777777777777777777777777777777777777777777777777777777",
+      "evidenceManifestDigest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "finalCursor": 90455,
+      "verification": {
+        "status": "passed",
+        "artifactId": "019f6a00-0000-7000-8000-000000000020"
+      }
+    },
+    "run.completion_accepted": {
+      "runId": "019f6a00-0000-7000-8000-000000000002",
+      "completionDigest": "7777777777777777777777777777777777777777777777777777777777777777",
+      "taskStatus": "needs-review"
+    },
+    "review.decision": {
+      "reviewId": "019f6a00-0000-7000-8000-000000000030",
+      "taskId": "019f6a00-0000-7000-8000-000000000001",
+      "runId": "019f6a00-0000-7000-8000-000000000002",
+      "subjectDigest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "decision": "rework-requested",
+      "decidedBy": "user:fixture",
+      "decidedAt": "2026-07-12T10:00:00.000Z",
+      "feedback": {
+        "note": "Fix the synthetic flaky test.",
+        "criterionIds": [
+          "ac-2"
+        ]
+      }
+    },
+    "effect.granted": {
+      "grantId": "019f6a00-0000-7000-8000-000000000040",
+      "effectKey": "merge:pr:example/site#12",
+      "runId": "019f6a00-0000-7000-8000-000000000002",
+      "taskId": "019f6a00-0000-7000-8000-000000000001",
+      "kind": "merge",
+      "parametersDigest": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "providerTarget": "github.example/example/site",
+      "riskClass": "high",
+      "expiresAt": "2026-07-12T10:00:00.000Z"
+    },
+    "effect.revoked": {
+      "grantId": "019f6a00-0000-7000-8000-000000000040",
+      "effectKey": "merge:pr:example/site#12",
+      "reason": "reviewer withdrew approval"
+    },
+    "effect.observed": {
+      "grantId": "019f6a00-0000-7000-8000-000000000040",
+      "effectKey": "merge:pr:example/site#12",
+      "runId": "019f6a00-0000-7000-8000-000000000002",
+      "status": "unknown",
+      "reason": "provider timeout after ambiguous accept",
+      "observedAt": "2026-07-12T10:00:00.000Z"
+    },
+    "message.ack": {
+      "ackFor": "019f6a00-0000-7000-8000-000000000010",
+      "cursorAck": {
+        "highestContiguousCursor": 90419,
+        "gaps": []
+      }
+    },
+    "message.nack": {
+      "nackFor": "019f6a00-0000-7000-8000-000000000010",
+      "code": "CLOCK_SKEW_EXCEEDED",
+      "retryable": false,
+      "detail": "sentAt ahead of receiver clock"
+    },
+    "reconcile.summary": {
+      "nodeCursor": 90455,
+      "cloudCursorApplied": 18240,
+      "activeLeases": [
+        {
+          "leaseId": "019f6a00-0000-7000-8000-000000000003",
+          "runId": "019f6a00-0000-7000-8000-000000000002",
+          "expiresAt": "2026-07-12T10:00:00.000Z"
+        }
+      ],
+      "unknownRuns": [],
+      "artifactManifestDigests": [
+        "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      ],
+      "truncations": []
+    },
+    "reconcile.request": {
+      "missingRanges": [
+        {
+          "fromCursor": 90420,
+          "toCursor": 90430
+        }
+      ],
+      "quarantine": []
+    }
+  }
+}

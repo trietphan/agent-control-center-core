@@ -1,0 +1,21 @@
+# Default owner until the governance process appoints additional maintainers.
+* @trietphan
+
+# Trust boundaries and release controls require explicit owner review.
+/.github/** @trietphan
+/tooling/check-action-pins.mjs @trietphan
+/tooling/secret-scan.mjs @trietphan
+/tooling/license-policy.mjs @trietphan
+/tooling/generate-third-party-notices.mjs @trietphan
+/src/accp/** @trietphan
+/src/adapters/process-supervisor.ts @trietphan
+/src/kernel/** @trietphan
+/src/node/** @trietphan
+/src/worktrees.ts @trietphan
+/protocol/** @trietphan
+/LICENSE @trietphan
+/NOTICE @trietphan
+/THIRD_PARTY_NOTICES.md @trietphan
+/SECURITY.md @trietphan
+/docs/legal-release-checklist.md @trietphan
+/docs/releasing.md @trietphan

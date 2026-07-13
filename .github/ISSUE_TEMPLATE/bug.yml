@@ -1,0 +1,61 @@
+name: Bug report
+description: Report a reproducible defect using synthetic, non-sensitive data.
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not report vulnerabilities or include credentials, private repository content, prompts, or customer artifacts here. Use the private security intake linked below the issue chooser.
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      description: Package version, release tag, or full commit SHA.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - ACCP protocol
+        - Adapter SDK or conformance
+        - Local node or execution kernel
+        - CLI or MCP bridge
+        - Documentation or examples
+        - Build or release tooling
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Provide exact commands and a synthetic fixture that reproduces the problem.
+      placeholder: |
+        1. npm ci
+        2. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior and sanitized logs
+      description: Remove tokens, paths, usernames, repository names, prompts, and customer data.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, architecture, Node.js version, package manager version, and relevant agent CLI version.
+    validations:
+      required: true

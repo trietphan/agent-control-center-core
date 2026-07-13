@@ -1,0 +1,104 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  secret-scan:
+    name: secret-scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out complete history
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Scan Git history for secrets
+        uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_ENABLE_COMMENTS: "false"
+          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: "false"
+      - name: Scan provider credentials with pinned TruffleHog
+        shell: bash
+        env:
+          TRUFFLEHOG_VERSION: 3.95.9
+          TRUFFLEHOG_SHA256: f6d1106b85107d79527ed7a5b98b592beadd8b770dc3c9e8c1ad99e1b2cf127e
+        run: |
+          set -euo pipefail
+          archive="trufflehog_${TRUFFLEHOG_VERSION}_linux_amd64.tar.gz"
+          curl --fail --location --silent --show-error \
+            --output "/tmp/$archive" \
+            "https://github.com/trufflesecurity/trufflehog/releases/download/v${TRUFFLEHOG_VERSION}/$archive"
+          echo "${TRUFFLEHOG_SHA256}  /tmp/$archive" | sha256sum --check --strict
+          mkdir -p /tmp/trufflehog
+          tar -xzf "/tmp/$archive" -C /tmp/trufflehog trufflehog
+          /tmp/trufflehog/trufflehog git "file://$GITHUB_WORKSPACE" \
+            --fail --no-update --filter-unverified \
+            --results=verified,unknown,unverified
+
+  verify:
+    name: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 22.13.0
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Run build, tests, conformance, license, and action-pin gates
+        run: npm run check
+      - name: Audit dependency vulnerabilities
+        run: npm audit --audit-level=moderate
+
+  supply-chain:
+    name: supply-chain
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 22.13.0
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Verify registry signatures and attestations
+        run: npm audit signatures
+      - name: Enforce production dependency license policy
+        run: npm run license:check
+      - name: Generate third-party inventory
+        run: npm run license:report
+      - name: Generate CycloneDX SBOM
+        run: npm run sbom
+      - name: Upload review evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: supply-chain-evidence-${{ github.sha }}
+          path: |
+            sbom.cdx.json
+            third-party-licenses.generated.json
+          if-no-files-found: error
+          retention-days: 30

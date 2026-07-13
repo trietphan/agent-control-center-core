@@ -1,0 +1,213 @@
+import type { AccpMessageType } from "./messages.js";
+
+const uuid = (n: number) =>
+  `019f6a00-0000-7000-8000-${String(n).padStart(12, "0")}`;
+const hex64 = (character: string) => character.repeat(64);
+const digest = (character: string) => `sha256:${hex64(character)}`;
+const gitSha = "9fceb02d0ae598e95dc970b74767f19372d61af8";
+const at = "2026-07-12T10:00:00.000Z";
+
+/** Language-neutral fixture source emitted to protocol/test-vectors. */
+export const ACCP_VALID_PAYLOADS: Record<AccpMessageType, unknown> = {
+  "node.hello": {
+    supportedProtocols: ["accp/1.0"],
+    schemaBundleDigest: digest("9"),
+    nodeVersion: "1.4.2",
+    platform: "linux-x64",
+    adapterManifests: [
+      { adapterId: "openai.codex-cli", manifestDigest: digest("1"), readiness: "ready" },
+    ],
+    capabilities: ["worktree"],
+    capacity: { maxConcurrentRuns: 4, availableRuns: 3 },
+    resume: { cloudCursor: 18211, nodeCursor: 90417 },
+  },
+  "node.welcome": {
+    protocol: "accp/1.0",
+    connectionEpoch: 42,
+    schemaBundleDigest: digest("9"),
+    cloudCursor: 18240,
+    nodeCursorAck: 90390,
+    policyBundleDigest: digest("7"),
+    limits: {
+      maxUnackedBatches: 16,
+      maxEventsPerBatch: 256,
+      maxEnvelopeBytes: 1048576,
+      heartbeatIntervalMs: 15000,
+      deadAfterMs: 45000,
+    },
+    serverTime: at,
+  },
+  "node.heartbeat": {
+    status: "online",
+    capacity: { maxConcurrentRuns: 4, availableRuns: 2 },
+    activeLeaseIds: [uuid(1)],
+    buffer: { events: 0, bytes: 0 },
+  },
+  "work.offer": {
+    taskId: uuid(1),
+    runId: uuid(2),
+    taskRevision: 3,
+    planRevision: { digest: hex64("c"), baseCommit: gitSha },
+    lease: { leaseId: uuid(3), expiresAt: at, renewIntervalMs: 15000 },
+    policyBundle: { digest: digest("7"), bytesUrl: "https://cloud.example/bundles/77aa" },
+    requiredCapabilities: ["worktree"],
+    requiredSecrets: ["secret://example/npm-token"],
+  },
+  "work.accepted": {
+    taskId: uuid(1),
+    runId: uuid(2),
+    leaseId: uuid(3),
+    persistedAt: at,
+    planRevisionDigest: hex64("c"),
+  },
+  "work.declined": {
+    taskId: uuid(1),
+    runId: uuid(2),
+    leaseId: uuid(3),
+    reason: "SECRET_MISSING",
+    detail: "synthetic secret reference unresolved",
+  },
+  "lease.renewed": { leaseId: uuid(3), runId: uuid(2), expiresAt: at },
+  "lease.revoked": {
+    leaseId: uuid(3),
+    runId: uuid(2),
+    reason: "OPERATOR_STOP",
+    stopDeadlineAt: at,
+  },
+  "run.cancel_requested": { runId: uuid(2), reason: "operator stop", deadlineAt: at },
+  "run.message_posted": {
+    runId: uuid(2),
+    operatorMessageId: uuid(9),
+    body: "Preserve the evidence and stop after this step.",
+    postedBy: "user:fixture",
+    postedAt: at,
+  },
+  "run.event_batch": {
+    batchId: uuid(10),
+    firstCursor: 90418,
+    lastCursor: 90419,
+    events: [
+      {
+        cursor: 90418,
+        eventId: uuid(11),
+        runId: uuid(2),
+        kind: "step.finished",
+        occurredAt: at,
+        data: { stepId: "execute-1", exitCode: 0 },
+      },
+      {
+        cursor: 90419,
+        eventId: uuid(12),
+        runId: uuid(2),
+        kind: "verification.started",
+        occurredAt: at,
+        data: {},
+      },
+    ],
+    truncatedPendingReconcile: false,
+  },
+  "artifact.declared": {
+    artifactId: uuid(20),
+    runId: uuid(2),
+    taskId: uuid(1),
+    kind: "test-log",
+    mediaType: "text/plain",
+    sizeBytes: 21474836,
+    digest: hex64("a"),
+    partSizeBytes: 8388608,
+    partCount: 3,
+    redactionState: "none",
+    provenance: { producer: "verifier", stepId: "verify-1" },
+  },
+  "artifact.upload_granted": {
+    artifactId: uuid(20),
+    uploadId: "fixture-upload-77aa",
+    parts: [
+      { partNumber: 2, url: "https://store.example/part2", expiresAt: at, maxBytes: 8388608 },
+    ],
+    committedParts: [{ partNumber: 1, digest: hex64("0") }],
+  },
+  "artifact.committed": {
+    artifactId: uuid(20),
+    uploadId: "fixture-upload-77aa",
+    sizeBytes: 21474836,
+    digest: hex64("a"),
+    parts: [
+      { partNumber: 1, sizeBytes: 8388608, digest: hex64("0") },
+      { partNumber: 2, sizeBytes: 8388608, digest: hex64("5") },
+      { partNumber: 3, sizeBytes: 4697620, digest: hex64("9") },
+    ],
+  },
+  "run.completion_proposed": {
+    runId: uuid(2),
+    taskId: uuid(1),
+    taskRevision: 3,
+    planRevisionDigest: hex64("c"),
+    outcome: "succeeded",
+    completionDigest: hex64("7"),
+    evidenceManifestDigest: hex64("d"),
+    finalCursor: 90455,
+    verification: { status: "passed", artifactId: uuid(20) },
+  },
+  "run.completion_accepted": {
+    runId: uuid(2),
+    completionDigest: hex64("7"),
+    taskStatus: "needs-review",
+  },
+  "review.decision": {
+    reviewId: uuid(30),
+    taskId: uuid(1),
+    runId: uuid(2),
+    subjectDigest: hex64("b"),
+    decision: "rework-requested",
+    decidedBy: "user:fixture",
+    decidedAt: at,
+    feedback: { note: "Fix the synthetic flaky test.", criterionIds: ["ac-2"] },
+  },
+  "effect.granted": {
+    grantId: uuid(40),
+    effectKey: "merge:pr:example/site#12",
+    runId: uuid(2),
+    taskId: uuid(1),
+    kind: "merge",
+    parametersDigest: hex64("f"),
+    providerTarget: "github.example/example/site",
+    riskClass: "high",
+    expiresAt: at,
+  },
+  "effect.revoked": {
+    grantId: uuid(40),
+    effectKey: "merge:pr:example/site#12",
+    reason: "reviewer withdrew approval",
+  },
+  "effect.observed": {
+    grantId: uuid(40),
+    effectKey: "merge:pr:example/site#12",
+    runId: uuid(2),
+    status: "unknown",
+    reason: "provider timeout after ambiguous accept",
+    observedAt: at,
+  },
+  "message.ack": {
+    ackFor: uuid(10),
+    cursorAck: { highestContiguousCursor: 90419, gaps: [] },
+  },
+  "message.nack": {
+    nackFor: uuid(10),
+    code: "CLOCK_SKEW_EXCEEDED",
+    retryable: false,
+    detail: "sentAt ahead of receiver clock",
+  },
+  "reconcile.summary": {
+    nodeCursor: 90455,
+    cloudCursorApplied: 18240,
+    activeLeases: [{ leaseId: uuid(3), runId: uuid(2), expiresAt: at }],
+    unknownRuns: [],
+    artifactManifestDigests: [hex64("d")],
+    truncations: [],
+  },
+  "reconcile.request": {
+    missingRanges: [{ fromCursor: 90420, toCursor: 90430 }],
+    quarantine: [],
+  },
+};

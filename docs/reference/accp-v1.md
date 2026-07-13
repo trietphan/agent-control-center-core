@@ -1,0 +1,316 @@
+# Agent Control Coordination Protocol 1.0
+
+Status: **public alpha specification**
+
+Protocol identifier: **`accp/1.0`**
+
+Current schema-bundle digest: **`sha256:3978603f31086172fe5be0c4103a424d186e5bd3bd20cecbf43fde280c9e7c98`**
+
+This document is the standalone normative definition of Agent Control Coordination Protocol version 1.0 (ACCP v1). It defines the signed control messages exchanged between an execution node and a controller. No private architecture document or managed service is required to implement this protocol.
+
+The key words **MUST**, **MUST NOT**, **REQUIRED**, **SHOULD**, **SHOULD NOT**, and **MAY** are to be interpreted as described by RFC 2119 and RFC 8174 when they appear in capitals.
+
+## 1. Scope and roles
+
+ACCP coordinates durable work; it is not a model chat protocol.
+
+A **controller** offers work, renews or revokes leases, requests cancellation, records review decisions, grants side effects, and accepts completion. A **node** evaluates offers, executes accepted work in its local kernel, journals events, proposes completion, and reports observed effects. A **workspace** is the security and state namespace shared by a controller and its enrolled nodes.
+
+ACCP v1 specifies:
+
+- protocol and exact-schema negotiation;
+- signed JSON envelopes and Ed25519 node/controller identities;
+- connection sessions, epochs, heartbeats, replay, cursors, acknowledgements, and reconciliation;
+- work offers and leases;
+- run events, artifacts, completion, review, and effect grants.
+
+ACCP v1 does not specify user login, organization membership, billing, a dashboard, model-provider credentials, repository hosting, object-store vendor APIs, or how a controller is deployed. A managed controller is not part of this repository.
+
+## 2. Transport and bootstrap
+
+### 2.1 Enrollment
+
+Enrollment is an out-of-band bootstrap, not an ACCP envelope. A node generates an Ed25519 keypair locally and presents a single-use enrollment code, node name, public key PEM, and request timestamp to the controller. A successful controller response returns:
+
+- `nodeId`;
+- `workspaceId`;
+- `cloudPublicKeyPem`.
+
+The node private key MUST NOT leave the node. Controllers SHOULD make enrollment codes short-lived, single-use, and bound to a workspace. The public reference client uses `POST /v1/enroll` with JSON, but that HTTP path is an implementation convention rather than part of the ACCP message namespace.
+
+The reference implementation stores the private key as an unencrypted PKCS#8 PEM file at `ACC_HOME/node/key.pem`. On POSIX it creates or tightens that file to mode `0600` and rejects loading it when group or other permission bits remain. This is explicitly not an OS keychain or hardware keystore. Implementations MAY use a stronger keystore as long as signatures remain interoperable.
+
+### 2.2 Session transport
+
+The node initiates an outbound WebSocket. An Internet deployment MUST use TLS (`wss://`) and normal certificate verification; the reference client rejects plaintext non-loopback WebSocket and HTTP endpoints. Each WebSocket message MUST be one UTF-8 JSON text frame containing exactly one ACCP envelope. Binary frames and multiple envelopes in one JSON value are not ACCP v1.
+
+The controller MUST NOT require an inbound listener on the node. Large artifact bytes MUST NOT be embedded in WebSocket envelopes; the artifact messages negotiate separate upload URLs.
+
+## 3. Envelope
+
+Every message has this top-level shape. Unknown or missing fields are governed by the generated JSON Schema bundle for this exact release.
+
+| Field | Type | Required | Rule |
+| --- | --- | --- | --- |
+| `protocol` | string | yes | `accp/1.0` after negotiation |
+| `schemaDigest` | string | yes | `sha256:` followed by 64 lowercase hexadecimal digits; identifies the exact schema bundle |
+| `type` | string | yes | one of the 24 message types in section 8 |
+| `messageId` | UUIDv7 | yes | unique message occurrence |
+| `sessionId` | UUIDv7 | yes | fresh for each connection attempt |
+| `workspaceId` | UUIDv7 | yes | enrolled workspace namespace |
+| `senderId` | string | yes | `cloud` or `node:<nodeId>` |
+| `idempotencyKey` | string, 1–200 characters | conditional | required for commands and proposals listed in section 6.2 |
+| `correlationId` | UUIDv7 | no | groups a request/response or business operation |
+| `causationId` | UUIDv7 | no | `messageId` that directly caused this message |
+| `sequence` | positive integer | yes | strictly increasing per sender within one session |
+| `sentAt` | RFC 3339 UTC string | yes | MUST end in `Z` |
+| `expiresAt` | RFC 3339 UTC string | no | message is invalid after this instant, subject to skew tolerance |
+| `payloadDigest` | string | yes | SHA-256 of canonical `payload`, prefixed by `sha256:` |
+| `payload` | JSON value | yes | validated by the schema for `type` |
+| `signature` | string | yes | `ed25519:` plus base64url signature bytes |
+
+All UUIDs generated by an ACCP v1 sender MUST be UUID version 7. Digests called `Sha256Hex` in payload schemas contain 64 lowercase hexadecimal characters without the `sha256:` prefix. Git commit IDs in v1 contain 40 lowercase hexadecimal characters.
+
+### 3.1 Canonicalization and digests
+
+ACCP uses the JSON Canonicalization Scheme model from RFC 8785: object keys are sorted lexicographically by UTF-16 code unit, strings and finite numbers use ECMAScript JSON serialization, and no insignificant whitespace is emitted. Non-finite numbers and non-JSON values MUST be rejected before sealing. Parsed wire JSON cannot contain `undefined`; object properties with an internal `undefined` value are omitted and an internal `undefined` array element canonicalizes as `null` in the reference implementation.
+
+The payload digest is:
+
+```text
+"sha256:" + lowercase_hex(SHA-256(UTF-8(JCS(payload))))
+```
+
+The signing input is UTF-8 canonical JSON of the complete envelope with only the `signature` property removed. It therefore includes both `payload` and `payloadDigest`.
+
+The signature is Ed25519 over those signing-input bytes:
+
+```text
+"ed25519:" + base64url(Ed25519.sign(privateKey, signingInput))
+```
+
+Receivers MUST verify in this order and MUST NOT dispatch a failed message:
+
+1. envelope shape;
+2. known message type;
+3. sender signature using the enrolled peer public key;
+4. recomputed payload digest;
+5. `sentAt` clock skew;
+6. expiry;
+7. type-specific payload schema;
+8. negotiated protocol, schema, workspace, session, epoch, sequence, and business-state rules.
+
+The clock-skew tolerance is ±120 seconds. A message is expired when `expiresAt` is earlier than the receiver clock minus 120 seconds. Implementations SHOULD synchronize clocks and SHOULD use a much smaller operational drift target.
+
+A receiver MUST fail closed on an invalid signature. It SHOULD avoid returning an authenticated-looking NACK for an unauthenticated message when doing so would create an oracle or amplification path.
+
+## 4. Schema identity and negotiation
+
+The canonical schema bundle is `protocol/schema-bundle.json`. Its digest is the payload-digest algorithm applied to the schema-bundle JSON value, not the SHA-256 of the pretty-printed file bytes. The expected digest is stored in `protocol/schema-bundle.sha256`.
+
+The node starts with `node.hello.supportedProtocols` and `node.hello.schemaBundleDigest`. The controller selects one protocol in `node.welcome.protocol` and returns its own `schemaBundleDigest`.
+
+For this alpha version, peers MUST require both `accp/1.0` and the exact digest they have explicitly declared compatible. Equal protocol strings with unequal, unknown schema digests MUST NOT receive new work. A peer MAY maintain an audited allowlist of multiple compatible digests, but silent best-effort field dropping is forbidden.
+
+When no compatible protocol or schema exists, the receiver SHOULD send `message.nack` with `VERSION_UNSUPPORTED` when the inbound message can be safely authenticated, then close the session.
+
+## 5. Connection lifecycle
+
+1. The node opens the outbound WebSocket.
+2. The node creates a fresh `sessionId`, resets its outbound `sequence`, and sends `node.hello` as sequence 1.
+3. The controller authenticates the node, negotiates protocol/schema, allocates a positive `connectionEpoch`, and sends `node.welcome` using the same session and workspace.
+4. Both sides replay durable unacknowledged work from the advertised cursors and idempotency records.
+5. The node sends `node.heartbeat` every 15,000 ms. The controller considers the connection dead after 45,000 ms without accepted liveness.
+6. On disconnect, the node retains journal, cursors, offer answers, and truncations, then reconnects with a new session ID using full-jitter exponential backoff.
+
+`connectionEpoch` fences controller split brain. A node MUST reject a welcome or command from an older epoch than the highest epoch it has accepted for the relevant controller identity. Epoch storage SHOULD survive a process restart.
+
+A heartbeat reports `online`, `degraded`, or `draining`, current run capacity, active lease IDs, and buffered event counts/bytes. A draining node MUST NOT accept new work.
+
+The controller supplies these session limits in `node.welcome`:
+
+- `maxUnackedBatches`;
+- `maxEventsPerBatch`;
+- `maxEnvelopeBytes`;
+- `heartbeatIntervalMs`, fixed at 15,000;
+- `deadAfterMs`, fixed at 45,000.
+
+A sender MUST respect the smaller of negotiated limits and the static payload-schema maximum. An oversized inbound envelope is rejected with `PAYLOAD_TOO_LARGE`.
+
+## 6. Delivery, idempotency, and cursors
+
+### 6.1 At-least-once delivery
+
+ACCP assumes messages can be lost, duplicated, or redelivered. A `messageId` identifies one transmission; an `idempotencyKey` identifies one durable business operation. Receivers MUST keep a bounded message-ID deduplication index and durable idempotency records for operations that can outlive a process.
+
+A repeated `messageId` MUST NOT be applied twice. A repeated idempotency key with the same semantic request MUST replay the stored answer or outcome. The same key with a different semantic request MUST fail with `IDEMPOTENCY_CONFLICT`.
+
+### 6.2 Operations requiring `idempotencyKey`
+
+The envelope schema requires a key for:
+
+- `work.offer`, `work.accepted`, and `work.declined`;
+- `lease.renewed` and `lease.revoked`;
+- `run.cancel_requested`, `run.message_posted`, and `run.completion_proposed`;
+- `artifact.declared`, `artifact.upload_granted`, and `artifact.committed`;
+- `review.decision`;
+- `effect.granted`, `effect.revoked`, and `effect.observed`.
+
+Offer handling is stricter: the node MUST durably store its accept/decline answer before sending it. Redelivery of the same offer key MUST return that stored answer even after restart.
+
+### 6.3 Event cursor
+
+The node maintains a monotonically increasing durable `nodeCursor`. Each local execution event is committed to the journal together with its next cursor before it can be put on the wire. `run.event_batch` events MUST be contiguous, ordered, and match `firstCursor` through `lastCursor`; a batch contains 1–256 events.
+
+A `message.ack` can carry `cursorAck.highestContiguousCursor` plus known gaps. Once acknowledged, the node MAY prune events at or below that contiguous cursor. Duplicate batches are re-acknowledged. Overlap applies only the unseen suffix. A gap is reconciled rather than silently skipped.
+
+`node.hello.resume.nodeCursor` is the highest locally allocated node cursor. `node.welcome.nodeCursorAck` is the highest contiguous node cursor durably ingested by the controller.
+
+`node.hello.resume.cloudCursor` and `node.welcome.cloudCursor` identify controller-to-node journal progress. ACCP v1 command envelopes do not include a separate cloud cursor field, so an implementation without a controller journal mapping MUST send `0` and rely on durable idempotency plus replay of unacknowledged commands. This limitation is retained for v1 interoperability and should be revised in a future protocol version.
+
+### 6.4 Sequence
+
+`sequence` starts at 1 for each sender/session and strictly increases. A receiver MUST reject a regression that is not an already-known duplicate with `SEQUENCE_REGRESSION`. Sequence is a session-ordering signal; it does not replace durable business idempotency or event cursors.
+
+## 7. Work, evidence, review, and effects
+
+### 7.1 Work and leases
+
+A `work.offer` binds `taskId`, `runId`, positive `taskRevision`, a plan digest and base Git commit, a lease, a policy-bundle digest/URL, required capabilities, and symbolic secret references.
+
+The node MUST check repository base availability, required secrets, capabilities, policy support, and capacity before accepting. It MUST decline with one of:
+
+- `REPO_BASE_UNAVAILABLE`;
+- `SECRET_MISSING`;
+- `CAPABILITY_MISSING`;
+- `POLICY_BUNDLE_UNSUPPORTED`;
+- `CAPACITY`.
+
+An acceptance is valid only after the offer and execution intent are durable locally. The response repeats task, run, lease, and plan digest so a controller can reject stale or mismatched acceptance.
+
+A lease has an expiry and a renewal interval of at least 5 seconds. `lease.renewed` moves expiry forward. `lease.revoked` includes a reason and stop deadline. A node MUST stop starting new side effects after revocation and SHOULD report its final observed state. Lease receipt alone does not grant an external side effect.
+
+### 7.2 Run control and events
+
+`run.cancel_requested` asks the node to stop by a deadline. `run.message_posted` carries an operator message up to 16,384 characters, its author, ID, and timestamp. Implementations MUST preserve operator-message identity so retries do not inject the same message twice.
+
+A node event contains cursor, event ID, optional run/task IDs, event kind, occurrence time, and a JSON data object. Event kind namespaces are extensible. Receivers MUST retain unknown event kinds as opaque evidence unless a policy explicitly rejects them.
+
+### 7.3 Artifacts
+
+`artifact.declared` identifies one artifact, its run/task, kind, media type, positive size, SHA-256, fixed 8,388,608-byte part size, positive part count, redaction state, and producer provenance.
+
+The controller responds with `artifact.upload_granted`, containing an upload ID, the parts still required, signed upload URLs, expiry, maximum bytes, and already committed parts. The node uploads bytes outside ACCP, then sends `artifact.committed` with total size/digest and every part number, size, and digest.
+
+The receiver MUST recompute sizes and hashes before accepting evidence. A mismatch is `ARTIFACT_DIGEST_MISMATCH` or `ARTIFACT_SIZE_MISMATCH`. URLs SHOULD be single-purpose, short-lived, and HTTPS.
+
+### 7.4 Completion and review
+
+`run.completion_proposed` binds the terminal outcome to task revision, plan digest, completion digest, evidence-manifest digest, and final event cursor. It optionally includes an independent verification status and artifact ID. Allowed outcomes are `succeeded`, `failed`, `stopped`, `stale`, and `unknown`.
+
+A controller MUST NOT accept a completion until required events and evidence through `finalCursor` are durable and the subject revisions still match. `run.completion_accepted` repeats the completion digest and moves the task to `needs-review`, `done`, `blocked`, or `queued`.
+
+`review.decision` binds a review ID and decision to the exact `subjectDigest`. Decisions are `approved`, `rework-requested`, `rejected`, `expired`, or `superseded`; optional feedback can contain a note and criterion IDs. A stale subject MUST be rejected with `SUBJECT_STALE`.
+
+### 7.5 External effects
+
+An external effect MUST have an `effect.granted` record before execution. A grant binds `grantId`, globally stable `effectKey`, run/task, effect kind, parameter digest, provider target, risk class, expiry, and optional compensation descriptor.
+
+`effect.revoked` withdraws a grant. `effect.observed` reports `succeeded`, `failed`, `unknown`, `compensating`, or `compensated`, with optional receipt and reason. If a provider timeout leaves acceptance ambiguous, the node MUST report `unknown`; it MUST NOT automatically repeat the effect merely because no success response arrived.
+
+The `effectKey` is the provider-side idempotency identity. Controllers and nodes SHOULD preserve it across retries and reconciliation.
+
+## 8. Message catalog
+
+The exact property schemas are in the generated Draft 2020-12 bundle. This table defines direction and semantic purpose. `either` means both peers may emit the message where applicable.
+
+| Type | Direction | Required payload content and invariant |
+| --- | --- | --- |
+| `node.hello` | node → controller | supported protocols, schema digest, node/platform version, adapter manifests/readiness, capabilities, capacity, resume cursors |
+| `node.welcome` | controller → node | selected protocol/digest, positive epoch, cursors, policy digest, limits, server time, optional deprecation dates |
+| `node.heartbeat` | node → controller | status, capacity, active lease IDs, buffered event/byte counts |
+| `work.offer` | controller → node | task/run revisions, immutable plan/base commit, lease, policy bundle, required capabilities/secrets |
+| `work.accepted` | node → controller | task/run/lease, durable persistence time, matching plan digest |
+| `work.declined` | node → controller | task/run/lease, typed reason, optional detail and retry delay |
+| `lease.renewed` | controller → node | lease/run and new expiry |
+| `lease.revoked` | controller → node | lease/run, typed reason, stop deadline |
+| `run.cancel_requested` | controller → node | run, reason, deadline |
+| `run.message_posted` | controller → node | run, operator message ID/body/author/time |
+| `run.event_batch` | node → controller | batch ID, contiguous cursor range, 1–256 events, truncation flag |
+| `artifact.declared` | node → controller | artifact identity, hashes, size, fixed part size, redaction, provenance |
+| `artifact.upload_granted` | controller → node | upload ID, required signed parts, committed parts |
+| `artifact.committed` | node → controller | artifact/upload IDs, total hash/size, non-empty part manifest |
+| `run.completion_proposed` | node → controller | revisions, outcome, completion/evidence digests, final cursor, optional verification |
+| `run.completion_accepted` | controller → node | run, matching completion digest, resulting task status |
+| `review.decision` | controller → node | review/task/run, subject digest, decision, actor/time, optional feedback |
+| `effect.granted` | controller → node | grant/effect IDs, parameters/provider/risk/expiry, optional compensation |
+| `effect.revoked` | controller → node | grant/effect IDs and reason |
+| `effect.observed` | node → controller | grant/effect/run, observed status/time, optional receipt/reason |
+| `message.ack` | either | acknowledged message ID and optional contiguous cursor acknowledgement/gaps |
+| `message.nack` | either | rejected message ID, typed code, retryability, optional detail |
+| `reconcile.summary` | node → controller | cursors, leases, unknown runs, artifact manifests, truncation ranges |
+| `reconcile.request` | controller → node | missing cursor ranges and quarantined runs/reasons |
+
+## 9. Negative acknowledgements
+
+Valid NACK codes are:
+
+- `SIGNATURE_INVALID`
+- `CLOCK_SKEW_EXCEEDED`
+- `SCHEMA_VIOLATION`
+- `VERSION_UNSUPPORTED`
+- `SEQUENCE_REGRESSION`
+- `IDEMPOTENCY_CONFLICT`
+- `PAYLOAD_TOO_LARGE`
+- `UNKNOWN_TYPE`
+- `EXPIRED`
+- `RATE_LIMITED`
+- `LEASE_UNKNOWN`
+- `SUBJECT_STALE`
+- `CAPABILITY_MISSING`
+- `ARTIFACT_DIGEST_MISMATCH`
+- `ARTIFACT_SIZE_MISMATCH`
+
+`retryable` describes whether retrying the same semantic operation can be useful after the reported condition changes. It does not authorize changing an idempotent request under the same key.
+
+## 10. Reconciliation and truncation
+
+On reconnect, suspected cursor gaps, unknown run ownership, ambiguous effects, or buffer truncation, the node sends `reconcile.summary`. The controller responds with missing ranges and quarantines in `reconcile.request`.
+
+A bounded node may drop older non-terminal events and record each dropped contiguous range as `BUFFER_BYTES` or `BUFFER_AGE`. Events whose kinds begin with `run.completion`, `effect.`, or `verification.` MUST be protected from the normal drop policy. `run.event_batch.truncatedPendingReconcile` remains true while unresolved truncation evidence exists.
+
+Neither peer may infer success from missing data. Unknown run or effect state remains `unknown` or quarantined until evidence or provider reconciliation resolves it.
+
+## 11. Security requirements
+
+- Private keys MUST remain private and SHOULD be stored in an OS or hardware-backed keystore where available.
+- TLS is REQUIRED over untrusted networks because signatures do not provide confidentiality.
+- Peers MUST bind identity to workspace and MUST validate session scope after signature verification.
+- Secret references in `requiredSecrets` are symbolic identifiers; raw secrets MUST NOT be put in offers, events, logs, or schemas.
+- A policy or plan URL MUST be digest verified before use.
+- Artifact bytes MUST be verified against declared digest and size.
+- Effect grants MUST be least privilege, short-lived, parameter-bound, and idempotent.
+- Operators MUST treat task text, repository content, plans, model output, and artifact metadata as untrusted input.
+
+See [the repository threat model](../threat-model.md) for local-file behavior and residual risks.
+
+## 12. Conformance and generated artifacts
+
+An implementation claiming ACCP v1 schema/signature conformance MUST:
+
+1. accept every applicable payload in `protocol/test-vectors/valid-payloads.json`;
+2. reproduce `canonicalization.json` exactly;
+3. verify `signed-envelope.json` at its stated `verifyAt` time;
+4. reject the cases described by `invalid.json` with the indicated code;
+5. reproduce the declared schema-bundle digest;
+6. implement replay, idempotency, cursor, expiry, and state semantics rather than only JSON validation.
+
+See [protocol conformance](../conformance/protocol.md) for the executable workflow and [compatibility policy](../../COMPATIBILITY.md) for versioning.
+
+## 13. Reference implementation status (non-normative)
+
+The public TypeScript package currently provides all payload schemas, the schema generator/digest, UUIDv7 generation, canonicalization, Ed25519 sealing/verification, clock/expiry checks, cursor decisions, test vectors, a durable SQLite node journal, outbound WebSocket reconnect, and a node-to-local-kernel bridge.
+
+The alpha node session fully handles welcome, cursor ACK, durable work-offer replay/decision, review decision delivery, event replay, completion proposals, and reconciliation summaries. It currently acknowledges several lease/cancel/completion/reconcile commands before their full coordinator-side behavior is bound. It does not automatically schedule heartbeats, persist the message-ID dedup window or accepted connection epoch across restart, enforce every inbound sequence/schema-digest rule, or upload artifact parts. No controller implementation is included.
+
+Accordingly, this release can claim protocol primitive and schema/vector conformance after the documented checks pass; it must not yet claim full endpoint or end-to-end ACCP conformance.

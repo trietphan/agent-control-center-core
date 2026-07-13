@@ -1,0 +1,42 @@
+name: Feature proposal
+description: Propose a focused protocol, SDK, node, or developer-experience improvement.
+title: "[Proposal]: "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem and affected user
+      description: Describe the concrete pain point without private product strategy or customer data.
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Verifiable outcome
+      description: What observable result would prove this proposal useful?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed contract or behavior
+      description: Include compatibility, security, cancellation, recovery, and migration implications where relevant.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+    validations:
+      required: true
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Scope checks
+      options:
+        - label: This does not require publishing managed-cloud internals or private integrations.
+          required: true
+        - label: This can be demonstrated with synthetic fixtures.
+          required: true

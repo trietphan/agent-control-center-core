@@ -1,0 +1,182 @@
+name: release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Signed annotated SemVer tag to release, for example v0.1.0-alpha.1
+        required: true
+        type: string
+      public_approval_record:
+        description: Required for a public release; immutable URL or ID recording human publication approval
+        required: false
+        type: string
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+concurrency:
+  group: release-${{ inputs.tag }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: verify, attest, and create GitHub release
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: release
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_TAG: ${{ inputs.tag }}
+      PUBLIC_APPROVAL_RECORD: ${{ inputs.public_approval_record }}
+      REPOSITORY_PRIVATE: ${{ github.event.repository.private }}
+      PRIVATE_ATTESTATIONS_ENABLED: ${{ vars.ATTESTATIONS_PRIVATE_ENABLED }}
+    steps:
+      - name: Check out the requested tag
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ inputs.tag }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify signed annotated tag and release gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]; then
+            echo "Release tag is not an allowed SemVer-style tag: $RELEASE_TAG" >&2
+            exit 1
+          fi
+
+          ref_json="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$RELEASE_TAG")"
+          object_type="$(jq -r '.object.type' <<<"$ref_json")"
+          tag_object_sha="$(jq -r '.object.sha' <<<"$ref_json")"
+          if [[ "$object_type" != "tag" ]]; then
+            echo "Release requires a signed annotated tag; lightweight tags are rejected." >&2
+            exit 1
+          fi
+
+          tag_json="$(gh api "repos/$GITHUB_REPOSITORY/git/tags/$tag_object_sha")"
+          if [[ "$(jq -r '.verification.verified' <<<"$tag_json")" != "true" ]]; then
+            echo "GitHub did not verify the annotated tag signature." >&2
+            jq -r '.verification.reason // "unknown verification reason"' <<<"$tag_json" >&2
+            exit 1
+          fi
+          if [[ "$(jq -r '.object.type' <<<"$tag_json")" != "commit" ]]; then
+            echo "The signed tag must point directly to a commit." >&2
+            exit 1
+          fi
+
+          tagged_commit="$(jq -r '.object.sha' <<<"$tag_json")"
+          checked_out_commit="$(git rev-parse HEAD)"
+          if [[ "$tagged_commit" != "$checked_out_commit" ]]; then
+            echo "Checked-out commit does not match the signed tag." >&2
+            exit 1
+          fi
+
+          expected_tag="v$(jq -r '.version' package.json)"
+          if [[ "$RELEASE_TAG" != "$expected_tag" ]]; then
+            echo "Tag $RELEASE_TAG does not match package version $expected_tag." >&2
+            exit 1
+          fi
+
+          if [[ "$REPOSITORY_PRIVATE" == "false" ]]; then
+            if [[ ! -f docs/legal-release-checklist.md ]]; then
+              echo "Public release blocked: docs/legal-release-checklist.md is missing." >&2
+              exit 1
+            fi
+            if grep -Eq '^[[:space:]]*- \[ \]' docs/legal-release-checklist.md; then
+              echo "Public release blocked: docs/legal-release-checklist.md still has unchecked gates." >&2
+              exit 1
+            fi
+            if [[ -z "${PUBLIC_APPROVAL_RECORD// }" ]]; then
+              echo "Public release blocked: public_approval_record is required." >&2
+              exit 1
+            fi
+            if [[ ${#PUBLIC_APPROVAL_RECORD} -gt 512 || "$PUBLIC_APPROVAL_RECORD" == *$'\n'* ]]; then
+              echo "Public release blocked: public_approval_record must be a single line of at most 512 characters." >&2
+              exit 1
+            fi
+          elif [[ "$PRIVATE_ATTESTATIONS_ENABLED" != "true" ]]; then
+            echo "Private release blocked: GitHub artifact attestations require eligible private-repository access." >&2
+            echo "Set ATTESTATIONS_PRIVATE_ENABLED=true only after that access is verified, or wait for approved public release." >&2
+            exit 1
+          fi
+
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 22.13.0
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Run release verification
+        run: |
+          npm run check
+          npm audit --audit-level=moderate
+          npm audit signatures
+
+      - name: Generate release evidence and package
+        id: package
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf release
+          mkdir release
+          npm run license:report
+          npm run sbom
+          package_file="$(npm pack --ignore-scripts --pack-destination release --json | jq -r '.[0].filename')"
+          cp LICENSE NOTICE THIRD_PARTY_NOTICES.md release/
+          cp sbom.cdx.json third-party-licenses.generated.json release/
+
+          {
+            echo "# Release evidence"
+            echo
+            echo "- Tag: $RELEASE_TAG"
+            echo "- Commit: $(git rev-parse HEAD)"
+            echo "- Repository visibility: $([[ "$REPOSITORY_PRIVATE" == "true" ]] && echo private || echo public)"
+            echo "- Public approval record: ${PUBLIC_APPROVAL_RECORD:-not applicable to private readiness}"
+            echo "- npm publication: not performed by this workflow"
+          } > release/RELEASE_EVIDENCE.md
+
+          (
+            cd release
+            find . -maxdepth 1 -type f ! -name SHA256SUMS -print0 \
+              | sort -z \
+              | xargs -0 sha256sum \
+              | sed 's#  \./#  #' > SHA256SUMS
+          )
+          echo "package_path=release/$package_file" >> "$GITHUB_OUTPUT"
+
+      - name: Attest release files and checksums
+        uses: actions/attest@a1948c3f048ba23858d222213b7c278aabede763 # v4.1.1
+        with:
+          subject-checksums: release/SHA256SUMS
+
+      - name: Attest package SBOM
+        uses: actions/attest@a1948c3f048ba23858d222213b7c278aabede763 # v4.1.1
+        with:
+          subject-path: ${{ steps.package.outputs.package_path }}
+          sbom-path: release/sbom.cdx.json
+
+      - name: Upload release evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-${{ inputs.tag }}
+          path: release/
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Create GitHub release candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          release_flags=(--verify-tag --title "$RELEASE_TAG" --notes-file release/RELEASE_EVIDENCE.md)
+          if [[ "$REPOSITORY_PRIVATE" == "true" ]]; then
+            release_flags+=(--prerelease)
+          fi
+          gh release create "$RELEASE_TAG" release/* "${release_flags[@]}"

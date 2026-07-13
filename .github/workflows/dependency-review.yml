@@ -1,0 +1,32 @@
+name: dependency-review
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dependency-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    name: dependency-review
+    # Public repositories receive dependency review through the dependency
+    # graph. Private repositories must explicitly confirm licensed access.
+    if: github.event.repository.private == false || vars.DEPENDENCY_REVIEW_PRIVATE_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Review dependency changes
+        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          fail-on-severity: moderate
+          fail-on-scopes: runtime
+          license-check: true
+          vulnerability-check: true
+          allow-licenses: >-
+            0BSD, Apache-2.0, BSD-2-Clause, BSD-3-Clause,
+            BlueOak-1.0.0, CC0-1.0, ISC, MIT, Python-2.0
