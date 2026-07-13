@@ -23,8 +23,8 @@ legal approval or authorize a visibility change.
 
 ## Evidence required on the initial private GitHub repository
 
-- [ ] All local checks green from a clean clone on the supported Node matrix.
-- [ ] Full clean history passes gitleaks and provider-pattern scanning.
+- [x] All local checks green from a clean clone on the supported Node matrix.
+- [x] Full clean history passes gitleaks and provider-pattern scanning.
 - [ ] Dependency licenses, registry signatures, vulnerabilities, and SBOM
   manually reviewed.
 - [ ] CodeQL and dependency review green on GitHub.

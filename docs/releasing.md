@@ -13,7 +13,9 @@ Before enabling release access:
    policy.
 2. Protect `main` with pull requests, CODEOWNERS review, conversation
    resolution, no force-push/delete, and required checks `secret-scan`,
-   `verify`, `supply-chain`, `dependency-review`, and CodeQL where available.
+   `verify (Node 20.19.0)`, `verify (Node 22.13.0)`,
+   `verify (Node 24.0.0)`, `supply-chain`, `dependency-review`, and CodeQL where
+   available.
 3. Protect `v*` tags so only release maintainers can create or delete them.
 4. Enable immutable releases, dependency graph, Dependabot alerts and security
    updates, native secret scanning, and push protection.
