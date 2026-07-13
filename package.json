@@ -87,7 +87,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.29.0",
-    "commander": "13.1.0",
+    "commander": "15.0.0",
     "sqlite": "5.1.1",
     "sqlite3": "6.0.1",
     "ws": "8.21.0",
