@@ -65,7 +65,7 @@
   "scripts": {
     "build": "node tooling/clean.mjs && tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "tsx --test test/**/*.test.ts",
+    "test": "node tooling/run-tests.mjs",
     "acc": "tsx src/cli.ts",
     "mcp": "tsx src/cli.ts mcp",
     "generate:protocol": "tsx tooling/generate-protocol-artifacts.ts",
