@@ -98,3 +98,24 @@ scan evidence, GitHub protection settings, signing evidence, and contributor
 onboarding evidence. I accept the remaining recorded risks or confirm they have
 been resolved.
 ```
+
+## Owner approvals recorded - 2026-07-16
+
+Repository owner Triet Phan explicitly approved all three remaining hard gates
+on 2026-07-16:
+
+1. Legal/IP/patent/license/trademark and contributor-authority approval.
+2. Creation and use of a dedicated cryptographic release-signing key and a
+   signed private release drill. The root commit will not be rewritten; signed
+   annotated release tags are required going forward.
+3. Changing `trietphan/agent-control-center-core` from private to public after
+   the signed release drill is verified.
+
+The open-core export boundary was merged in the private source repository as
+`trietphan/agent-control-center` PR #5, merge commit
+`a4bafbb408d0bdc919c97f2e4ff699093b843af8`.
+
+A dedicated Ed25519 signing key was generated on 2026-07-16 with fingerprint
+`SHA256:bWKsl0W8rv/9pwzmxZs/7o9izSuApsecIJZghd7vEP0`. GitHub verification and the
+signed release drill must be recorded before the final signing checklist item
+is checked and before repository visibility changes.
