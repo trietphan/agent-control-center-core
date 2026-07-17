@@ -10,7 +10,8 @@ does not replace owner, legal, IP, patent, license, or trademark approval.
 
 ## Technical evidence completed
 
-- Local clean checkout: `/Users/trietphan/.openclaw/workspace/agent-control-center-core`
+- Local clean checkout: a dedicated private workspace checkout (absolute host
+  path intentionally redacted).
 - `npm ci`: passed on Node `v25.8.0`; npm reported engine warning because the
   package supports Node `^20.19.0 || ^22.13.0 || ^24.0.0`.
 - `npm run check`: passed on Node `v25.8.0`.
@@ -21,7 +22,8 @@ does not replace owner, legal, IP, patent, license, or trademark approval.
 - Dependency graph SBOM API: returned 368 packages.
 - Dependabot alerts API: returned 0 alerts.
 - Fresh clone onboarding drill:
-  - Directory: `/tmp/acc-clean-clone.rSKSoo/repo`
+  - Directory: an ephemeral clean-clone directory (absolute host path
+    intentionally redacted).
   - Commit: `80fb3ba8d528f001ec2a6ee3fa8a7e1965090ca9`
   - `npm ci`: passed with the same Node `v25.8.0` engine warning.
   - `npm run check`: passed with 140 tests passed, 0 failed.
