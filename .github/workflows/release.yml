@@ -106,7 +106,7 @@ jobs:
           fi
 
       - name: Set up Node.js
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22.13.0
           cache: npm
@@ -153,12 +153,12 @@ jobs:
           echo "package_path=release/$package_file" >> "$GITHUB_OUTPUT"
 
       - name: Attest release files and checksums
-        uses: actions/attest@a1948c3f048ba23858d222213b7c278aabede763 # v4.1.1
+        uses: actions/attest@f7c74d28b9d84cb8768d0b8ca14a4bac6ef463e6 # v4.2.0
         with:
           subject-checksums: release/SHA256SUMS
 
       - name: Attest package SBOM
-        uses: actions/attest@a1948c3f048ba23858d222213b7c278aabede763 # v4.1.1
+        uses: actions/attest@f7c74d28b9d84cb8768d0b8ca14a4bac6ef463e6 # v4.2.0
         with:
           subject-path: ${{ steps.package.outputs.package_path }}
           sbom-path: release/sbom.cdx.json
