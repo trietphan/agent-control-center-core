@@ -1,6 +1,6 @@
 {
   "name": "agent-control-center-core",
-  "version": "0.1.0-alpha.1",
+  "version": "0.1.0-alpha.2",
   "description": "Open protocol, adapter SDK, and local execution kernel for evidence-gated agent work.",
   "license": "Apache-2.0",
   "type": "module",
@@ -100,6 +100,10 @@
     "license-checker-rseidelsohn": "5.0.1",
     "tsx": "4.23.1",
     "typescript": "5.9.3"
+  },
+  "overrides": {
+    "@hono/node-server": "2.0.11",
+    "fast-uri": "3.1.4"
   },
   "publishConfig": {
     "access": "public",
