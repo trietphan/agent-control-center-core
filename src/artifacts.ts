@@ -1,4 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
+import { constants } from "node:fs";
 import {
   chmod,
   link,
@@ -104,14 +105,20 @@ function isErrno(error: unknown, code: string): boolean {
 }
 
 async function readRegularFile(filePath: string): Promise<Buffer> {
-  const info = await lstat(filePath);
-  if (!info.isFile() || info.isSymbolicLink()) {
-    throw new ArtifactConflictError(
-      filePath,
-      `Artifact evidence must be a regular file: ${filePath}`,
-    );
+  const noFollow = constants.O_NOFOLLOW ?? 0;
+  const handle = await open(filePath, constants.O_RDONLY | noFollow);
+  try {
+    const info = await handle.stat();
+    if (!info.isFile()) {
+      throw new ArtifactConflictError(
+        filePath,
+        `Artifact evidence must be a regular file: ${filePath}`,
+      );
+    }
+    return await handle.readFile();
+  } finally {
+    await handle.close();
   }
-  return await readFile(filePath);
 }
 
 /**
