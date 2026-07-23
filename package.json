@@ -76,6 +76,7 @@
     "license:check": "node tooling/license-policy.mjs",
     "license:report": "node tooling/generate-third-party-notices.mjs",
     "license:report:check": "node tooling/generate-third-party-notices.mjs --check",
+    "deps:refresh-evidence": "npm run license:report && npm run inventory:generate",
     "sbom": "cyclonedx-npm --output-file sbom.cdx.json --output-format JSON --spec-version 1.6 --omit dev",
     "security:secrets": "node tooling/secret-scan.mjs",
     "actions:pin-check": "node tooling/check-action-pins.mjs",
@@ -87,10 +88,10 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.29.0",
-    "commander": "13.1.0",
+    "commander": "14.0.3",
     "sqlite": "5.1.1",
     "sqlite3": "6.0.1",
-    "ws": "8.21.0",
+    "ws": "8.21.1",
     "zod": "4.4.3"
   },
   "devDependencies": {

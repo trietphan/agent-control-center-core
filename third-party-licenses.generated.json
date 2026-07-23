@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "project": "agent-control-center-core@0.1.0-alpha.2",
   "productionOnly": true,
-  "packageLockSha256": "6dac78fc8b170de62d44402afbe3fc7c28456028b136f97772dd98d4167a26b5",
+  "packageLockSha256": "05189da2a0cc243b9a1732f43afe2918312c0d4a5c0121db433782a44c6fce74",
   "packages": [
     {
       "name": "@hono/node-server",
@@ -227,7 +227,7 @@
     },
     {
       "name": "commander",
-      "version": "13.1.0",
+      "version": "14.0.3",
       "direct": true,
       "license": "MIT",
       "repository": "https://github.com/tj/commander.js",
@@ -1904,7 +1904,7 @@
     },
     {
       "name": "ws",
-      "version": "8.21.0",
+      "version": "8.21.1",
       "direct": true,
       "license": "MIT",
       "repository": "https://github.com/websockets/ws",
