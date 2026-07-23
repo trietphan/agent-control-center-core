@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "project": "agent-control-center-core@0.1.0-alpha.1",
+  "project": "agent-control-center-core@0.1.0-alpha.2",
   "productionOnly": true,
-  "packageLockSha256": "3874999edc7e662232849cac0f8ea90a94aa4132105878ddf2ada86c10cf9b55",
+  "packageLockSha256": "05189da2a0cc243b9a1732f43afe2918312c0d4a5c0121db433782a44c6fce74",
   "packages": [
     {
       "name": "@hono/node-server",
-      "version": "1.19.14",
+      "version": "2.0.11",
       "direct": false,
       "license": "MIT",
       "repository": "https://github.com/honojs/node-server",
@@ -227,7 +227,7 @@
     },
     {
       "name": "commander",
-      "version": "13.1.0",
+      "version": "14.0.3",
       "direct": true,
       "license": "MIT",
       "repository": "https://github.com/tj/commander.js",
@@ -617,7 +617,7 @@
     },
     {
       "name": "fast-uri",
-      "version": "3.1.3",
+      "version": "3.1.4",
       "direct": false,
       "license": "BSD-3-Clause",
       "repository": "https://github.com/fastify/fast-uri",
@@ -1904,7 +1904,7 @@
     },
     {
       "name": "ws",
-      "version": "8.21.0",
+      "version": "8.21.1",
       "direct": true,
       "license": "MIT",
       "repository": "https://github.com/websockets/ws",

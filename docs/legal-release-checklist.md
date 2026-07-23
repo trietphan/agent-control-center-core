@@ -17,7 +17,8 @@ evidence, not legal advice.
 - [x] Private repository, screenshots, fixtures, author identities, issue
   references, and Git history reviewed for confidential material.
 - [x] Security reporting owner and release owners accept their roles.
-- [ ] Signed initial commit and signed release key ownership verified.
+- [x] Signed release key ownership and the initial release tag signature
+  verified by GitHub on 2026-07-23.
 - [x] External contributor completes the fixture onboarding from a fresh
   machine without private registry access.
 - [x] Repository visibility change approved as a separate recorded action by

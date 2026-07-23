@@ -101,6 +101,25 @@ recovery must include tests for interruption and duplicate-side-effect risk.
 Never silently rerun an operation whose external side effects cannot be proven
 idempotent.
 
+### Dependency changes
+
+Dependency updates deliberately fail the provenance gate until generated
+evidence is refreshed. This also applies to Dependabot branches. Review install
+scripts and version compatibility, then run:
+
+```bash
+npm ci
+npm run deps:refresh-evidence
+npm audit --audit-level=moderate
+npm audit signatures
+npm run check
+```
+
+Commit the reviewed lockfile, third-party inventory, and file inventory
+together. Major runtime, type-definition, compiler, native-module, or protocol
+dependency updates must remain separate pull requests so their compatibility
+impact is independently visible.
+
 ### Documentation changes
 
 Prefer a verifiable outcome over a feature claim. Commands in getting-started
