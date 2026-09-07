@@ -87,12 +87,12 @@
     "prepublishOnly": "node tooling/assert-publication-approved.mjs && npm run check"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "1.29.0",
+    "@modelcontextprotocol/sdk": "1.30.0",
     "commander": "14.0.3",
     "sqlite": "5.1.1",
     "sqlite3": "6.0.1",
-    "ws": "8.21.1",
-    "zod": "4.4.3"
+    "ws": "8.21.3",
+    "zod": "4.5.4"
   },
   "devDependencies": {
     "@cyclonedx/cyclonedx-npm": "6.0.0",
